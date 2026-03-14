@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+  </Folder>
+  <Project Path="../TimesheetSystem.Core/TimesheetSystem.Core.csproj" />
+  <Project Path="../TimesheetSystem.Infrastructure/TimesheetSystem.Infrastructure.csproj" />
+  <Project Path="../TimesheetSystem.Tests/TimesheetSystem.Tests.csproj" />
+  <Project Path="TimesheetSystem.csproj" />
+</Solution>

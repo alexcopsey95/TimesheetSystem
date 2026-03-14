@@ -1,0 +1,266 @@
+﻿@page "/"
+@using TimesheetSystem.Core.Interfaces
+@using TimesheetSystem.Core.Models
+@using TimesheetSystem.Infrastructure.Data
+@inject ITimesheetService TimesheetService
+
+<PageTitle>Timesheet System</PageTitle>
+
+<div class="app-header">
+    <h1>Timesheet System</h1>
+</div>
+
+<div class="container-fluid py-4">
+
+    <h2 class="mb-4">Timesheets</h2>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body d-flex gap-3 align-items-end">
+            <div>
+                <label class="form-label">User</label>
+                <select class="form-select" @bind="SelectedUserId">
+                    @foreach (var user in SeedData.Users)
+                    {
+                        <option value="@user.Id">@user.Name</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Week Starting</label>
+                <select class="form-select" @bind="SelectedWeekStart">
+                    @foreach (var week in WeekOptions)
+                    {
+                        <option value="@week">@week.ToString("dd MMM yyyy")</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <button class="btn btn-primary" @onclick="OpenAddModal">+ Add Entry</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timesheet Table -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Entries</h5>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Project</th>
+                        <th>Hours</th>
+                        <th>Description</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Entries.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-3">No entries found for this week.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var entry in Entries)
+                        {
+                            <tr>
+                                <td>@entry.Date.ToString("dd MMM yyyy")</td>
+                                <td>@SeedData.Projects.FirstOrDefault(p => p.Id == entry.ProjectId)?.Name</td>
+                                <td>@entry.Hours</td>
+                                <td>@entry.Description</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => OpenEditModal(entry)">Edit</button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteEntry(entry.Id)">Delete</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Weekly Summary</h5>
+        </div>
+        <div class="card-body p-0">
+            <table class="table mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Project</th>
+                        <th>Total Hours</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var project in SeedData.Projects)
+                    {
+                        var total = TimesheetService.GetTotalHoursPerProject(SelectedUserId, project.Id, SelectedWeekStart);
+                        if (total > 0)
+                        {
+                            <tr>
+                                <td>@project.Name</td>
+                                <td>@total</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    @if (ShowModal)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: #b3e5f9; border-radius: 8px;">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">@(IsEditing ? "Edit Entry" : "Add Entry")</h5>
+                        <button type="button" class="btn-close" @onclick="CloseModal" style="margin-left:auto; background:none; border:none; color:white; font-size:1.5rem; line-height:1; cursor:pointer;">&times;</button>
+                    </div>
+                    <div class="modal-body">
+
+                        <div class="mb-3">
+                            <label class="form-label">User</label>
+                            <select class="form-select" @bind="ModalEntry.UserId">
+                                @foreach (var user in SeedData.Users)
+                                {
+                                    <option value="@user.Id">@user.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Project</label>
+                            <select class="form-select" @bind="ModalEntry.ProjectId">
+                                @foreach (var project in SeedData.Projects)
+                                {
+                                    <option value="@project.Id">@project.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Date</label>
+                            <input type="date" class="form-control"
+                                   value="@ModalEntry.Date.ToString("yyyy-MM-dd")"
+                                   min="@DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)).ToString("yyyy-MM-dd")"
+                                   max="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")"
+                                   @onchange="e => ModalEntry.Date = DateOnly.Parse(e.Value!.ToString()!)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Hours</label>
+                            <input type="number" class="form-control" step="0.5" min="0.5" max="24"
+                                   @bind="ModalEntry.Hours" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Description <span class="text-muted">(optional)</span></label>
+                            <textarea class="form-control" rows="3" @bind="ModalEntry.Description"></textarea>
+                        </div>
+
+                        @if (ErrorMessage != null)
+                        {
+                            <div class="alert alert-danger">@ErrorMessage</div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                        <button class="btn btn-primary" @onclick="SaveEntry">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+</div>
+
+@code {
+    private int SelectedUserId { get; set; } = SeedData.Users.First().Id;
+    private DateOnly SelectedWeekStart { get; set; } = GetCurrentWeekStart();
+    private IEnumerable<TimesheetEntry> Entries =>
+        TimesheetService.GetEntriesForUserAndWeek(SelectedUserId, SelectedWeekStart).OrderBy(e => e.Date);
+    private List<DateOnly> WeekOptions => GetWeekOptions();
+
+    private bool ShowModal { get; set; } = false;
+    private TimesheetEntry ModalEntry { get; set; } = new();
+    private bool IsEditing { get; set; } = false;
+    private string? ErrorMessage { get; set; }
+
+    private static DateOnly GetCurrentWeekStart()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var daysFromMonday = ((int)today.DayOfWeek + 6) % 7;
+        return today.AddDays(-daysFromMonday);
+    }
+
+    private static List<DateOnly> GetWeekOptions()
+    {
+        var weeks = new List<DateOnly>();
+        var current = GetCurrentWeekStart();
+        for (int i = -4; i <= 0; i++)
+            weeks.Add(current.AddDays(i * 7));
+        return weeks;
+    }
+
+    private void OpenAddModal()
+    {
+        ModalEntry = new TimesheetEntry { UserId = SelectedUserId, Date = SelectedWeekStart, ProjectId = SeedData.Projects.First().Id };
+        IsEditing = false;
+        ErrorMessage = null;
+        ShowModal = true;
+    }
+
+    private void OpenEditModal(TimesheetEntry entry)
+    {
+        ModalEntry = new TimesheetEntry
+        {
+            Id = entry.Id,
+            UserId = entry.UserId,
+            ProjectId = entry.ProjectId,
+            Date = entry.Date,
+            Hours = entry.Hours,
+            Description = entry.Description
+        };
+        IsEditing = true;
+        ErrorMessage = null;
+        ShowModal = true;
+    }
+
+    private void SaveEntry()
+    {
+        try
+        {
+            if (IsEditing)
+                TimesheetService.UpdateEntry(ModalEntry);
+            else
+                TimesheetService.AddEntry(ModalEntry);
+
+            ShowModal = false;
+            ErrorMessage = null;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+    }
+
+    private void DeleteEntry(Guid id)
+    {
+        TimesheetService.DeleteEntry(id);
+    }
+
+    private void CloseModal()
+    {
+        ShowModal = false;
+        ErrorMessage = null;
+    }
+}
