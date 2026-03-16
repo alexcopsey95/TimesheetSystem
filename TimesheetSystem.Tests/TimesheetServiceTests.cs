@@ -100,6 +100,20 @@ namespace TimesheetSystem.Tests
         }
 
         [Fact]
+        public void AddEntry_DateOverAMonthAgo_ThrowsArgumentException()
+        {
+            var entry = new TimesheetEntry
+            {
+                UserId = 1,
+                ProjectId = 1,
+                Date = DateOnly.FromDateTime(DateTime.Today.AddMonths(-1).AddDays(-1)),
+                Hours = 7.5m
+            };
+
+            Assert.Throws<ArgumentException>(() => _service.AddEntry(entry));
+        }
+
+        [Fact]
         public void AddEntry_DuplicateEntry_ThrowsInvalidOperationException()
         {
             var entry = new TimesheetEntry
@@ -187,6 +201,20 @@ namespace TimesheetSystem.Tests
                 UserId = 1,
                 ProjectId = 1,
                 Date = DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
+                Hours = 7.5m
+            };
+
+            Assert.Throws<ArgumentException>(() => _service.UpdateEntry(entry));
+        }
+
+        [Fact]
+        public void UpdateEntry_DateOverAMonthAgo_ThrowsArgumentException()
+        {
+            var entry = new TimesheetEntry
+            {
+                UserId = 1,
+                ProjectId = 1,
+                Date = DateOnly.FromDateTime(DateTime.Today.AddMonths(-1).AddDays(-1)),
                 Hours = 7.5m
             };
 

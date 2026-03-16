@@ -20,6 +20,9 @@ namespace TimesheetSystem.Core.Services
             if (entry.Date > DateOnly.FromDateTime(DateTime.Today))
                 throw new ArgumentException("Date cannot be in the future.");
 
+            if (entry.Date < DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)))
+                throw new ArgumentException("Date cannot be over a month in the past.");
+
             if (entry.Hours <= 0)
                 throw new ArgumentException("Hours must be greater than zero.");
 
@@ -40,6 +43,9 @@ namespace TimesheetSystem.Core.Services
         {
             if (entry.Date > DateOnly.FromDateTime(DateTime.Today))
                 throw new ArgumentException("Date cannot be in the future.");
+
+            if (entry.Date < DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)))
+                throw new ArgumentException("Date cannot be over a month in the past.");
 
             if (entry.Hours <= 0)
                 throw new ArgumentException("Hours must be greater than zero.");
